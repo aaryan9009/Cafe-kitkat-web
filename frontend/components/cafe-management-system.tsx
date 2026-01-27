@@ -7,7 +7,7 @@ import {
 } from "lucide-react"
 
 //const API_URL = "http://localhost:5000/api/orders"
-const API_URL = "https://cafe-kitkat-web.onrender.com"
+const API_URL = "https://cafe-kitkat-web.onrender.com/api/orders"
 
 export default function CafeManagementSystem() {
   const [cart, setCart] = useState<any[]>([])
