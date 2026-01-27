@@ -6,7 +6,7 @@ import {
   CheckCircle, X, Check, IndianRupee, ClipboardList, XCircle, LogOut, MapPin, Phone, Mail
 } from "lucide-react"
 
-const API_URL = "http://localhost:5000/api/orders"
+const API_URL = "https://cafe-kitkat-web.onrender.com"
 
 export default function CafeManagementSystem() {
   const [cart, setCart] = useState<any[]>([])
