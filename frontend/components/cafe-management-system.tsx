@@ -1,16 +1,12 @@
 "use client"
 
-import { useEffect, useState, useMemo } from "react"
+import { useEffect, useState, useMemo, useCallback } from "react"
 import {
   Coffee, ShoppingCart, Plus, Minus, Trash2, Eye, EyeOff,
   CheckCircle, X, Check, IndianRupee, ClipboardList, XCircle, LogOut, MapPin, Phone, Mail
 } from "lucide-react"
 
-<<<<<<< HEAD
-=======
-//const API_URL = "http://localhost:5000/api/orders"
->>>>>>> 248ef9c (Fix: update Next.js to patched version)
-const API_URL = "https://cafe-kitkat-web.onrender.com"
+const API_URL = "https://cafe-kitkat-web.onrender.com/api/orders"
 
 export default function CafeManagementSystem() {
   const [cart, setCart] = useState<any[]>([])
@@ -19,12 +15,12 @@ export default function CafeManagementSystem() {
   const [view, setView] = useState<"client" | "server" | "login">("client")
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
-  const [showPassword, setShowPassword] = useState(false)
   const [isServerAuthenticated, setIsServerAuthenticated] = useState(false)
   const [showPaymentScanner, setShowPaymentScanner] = useState(false)
   const [showBill, setShowBill] = useState(false)
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
   const [loginError, setLoginError] = useState("")
+  const [lastOrderCount, setLastOrderCount] = useState<number | null>(null);
 
   // --- MENU DATA ---
   const menuItems = [
@@ -41,12 +37,12 @@ export default function CafeManagementSystem() {
     { id: 11, name: "Cold Coffee", price: 49, category: "Cold Drinks", image: "https://images.unsplash.com/photo-1517487881594-2787fef5ebf7?w=400" },
     { id: 12, name: "Iced tea", price: 79, category: "Cold Drinks", image: "https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=400" },
     { id: 13, name: "Smoothie", price: 99, category: "Cold Drinks", image: "https://www.eatingwell.com/thmb/TBp6lbiwoYPhRP4N__4sROiUDhA=/1500x0/filters:no_upscale():max_bytes(150000):strip_icc()/mixed-berry-breakfast-smoothie-7959466-1x1-e0ad2304222e49508cda7b73b21de921.jpg" },
-    { id: 14, name: "Pepsi", price: 29, category: "Cold Drinks", image: "https://www.pepsicopartners.com/medias/300Wx300H-1-HYK-24760.jpg?context=bWFzdGVyfHJvb3R8MjQxNjB8aW1hZ2UvanBlZ3xhREV4TDJnNU9DOHhNVFF6TkRFd01qY3hPRFE1TkM4ek1EQlhlRE13TUVoZk1TMUlXVXN0TWpRM05qQXVhbkJufGYxNzY3ZTk5NTc1MDRkYWEyODgwOTE5N2E2MDYyYjNhZGMzNGE4N2M5MzU5Y2FjMTg2ZmRiMGE3MmJhZWE4ZTE" },
+    { id: 14, name: "Pepsi", price: 29, category: "Cold Drinks", image: "https://www.pepsicopartners.com/medias/300Wx300H-1-HYK-24760.jpg" },
     { id: 15, name: "Mountain Dew", price: 29, category: "Cold Drinks", image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTyfjerwVfkN_2heIVSDCfU7Bx4USGquMSGcA&s" },
     { id: 16, name: "Mocktail", price: 49, category: "Cold Drinks", image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRt99vlwslLoDzQiRR7SCrI2yHR3wkuREdNuw&s" },
     { id: 17, name: "Sandwich", price: 79, category: "Food", image: "https://www.watermelon.org/wp-content/uploads/2023/02/Sandwich_2023.jpg" },
     { id: 18, name: "Pizza", price: 99, category: "Food", image: "https://media-assets.swiggy.com/swiggy/image/upload/f_auto,q_auto,fl_lossy/RX_THUMBNAIL/IMAGES/VENDOR/2024/6/26/d112a6d7-d173-4ca7-a5ee-40f845719d18_841144.JPG" },
-    { id: 19, name: "Burger", price: 99, category: "Food", image: "https://www.lurch.de/media/b5/4c/70/1693989554/burger-classic-cheese-rezept.jpg?ts=1753774543" },
+    { id: 19, name: "Burger", price: 99, category: "Food", image: "https://www.lurch.de/media/b5/4c/70/1693989554/burger-classic-cheese-rezept.jpg" },
     { id: 20, name: "Maggiee", price: 49, category: "Food", image: "https://img-global.cpcdn.com/recipes/da28ecda18072e30/680x781cq80/spicy-veg-maggi-noodles-recipe-main-photo.jpg" },
     { id: 21, name: "Pasta", price: 49, category: "Food", image: "https://www.yummytummyaarthi.com/wp-content/uploads/2022/11/red-sauce-pasta-1-500x500.jpg" },
     { id: 22, name: "Pav Bhaji", price: 79, category: "Food", image: "https://i.pinimg.com/736x/33/9b/b9/339bb9d3758a6078c7f8a7db996b0854.jpg" },
@@ -64,9 +60,8 @@ export default function CafeManagementSystem() {
   ];
 
   const categories = Array.from(new Set(menuItems.map(i => i.category)));
-
   const toDateKey = (ts: string | Date) => new Date(ts).toLocaleDateString("en-CA");
-  
+
   const stats = useMemo(() => {
     const filtered = orders.filter(o => toDateKey(o.createdAt) === selectedDate);
     return {
@@ -79,24 +74,59 @@ export default function CafeManagementSystem() {
 
   const calculateTotal = () => cart.reduce((sum, item) => sum + item.price * item.qty, 0);
 
-  const fetchOrders = async () => {
+  // 🔊 AUDIO LOGIC
+  const playSound = (path: string) => {
+  const audio = new Audio(path);
+  
+  // High volume and ensuring it's not muted
+  audio.volume = 1.0; 
+  
+  const playPromise = audio.play();
+
+  if (playPromise !== undefined) {
+    playPromise.catch((error) => {
+      console.warn("Autoplay blocked. Staff must click the page once to enable sound.");
+    });
+  }
+};
+  const fetchOrders = useCallback(async () => {
     try {
       const res = await fetch(API_URL);
       const data = await res.json();
+
+      // Notify Staff if new order arrives
+      if (lastOrderCount !== null && data.length > lastOrderCount) {
+        if (view === "server" && isServerAuthenticated) {
+          playSound("/sounds/new-order.mp3");
+        }
+      }
+      
+      setLastOrderCount(data.length);
       setOrders(data);
-    } catch (err) { console.error("Fetch error"); }
-  };
+    } catch (err) {
+      console.error("Fetch error");
+    }
+  }, [lastOrderCount, view, isServerAuthenticated]);
 
   useEffect(() => {
     fetchOrders();
     if (localStorage.getItem("serverAuth") === "true") setIsServerAuthenticated(true);
   }, []);
 
+  useEffect(() => {
+    let interval: any;
+    if (view === "server" && isServerAuthenticated) {
+      interval = setInterval(fetchOrders, 5000);
+    }
+    return () => clearInterval(interval);
+  }, [view, isServerAuthenticated, fetchOrders]);
+
   const handleServerLogin = () => {
     if (username === "kitkat" && password === "Palus@123") {
       setIsServerAuthenticated(true);
       localStorage.setItem("serverAuth", "true");
       setView("server");
+      setLoginError("");
     } else {
       setLoginError("Invalid credentials");
     }
@@ -126,7 +156,7 @@ export default function CafeManagementSystem() {
 
   const completeOrder = async (method: "cash" | "online") => {
     try {
-      await fetch(API_URL, {
+      const res = await fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -137,10 +167,16 @@ export default function CafeManagementSystem() {
           status: "pending",
         }),
       });
-      setShowPaymentScanner(false);
-      setShowBill(true);
-      fetchOrders();
-    } catch (err) { alert("Order failed."); }
+
+      if (res.ok) {
+        playSound("/sounds/order-placed.mp3"); // Notify Client
+        setShowPaymentScanner(false);
+        setShowBill(true);
+        fetchOrders();
+      }
+    } catch (err) {
+      alert("Order failed.");
+    }
   };
 
   return (
@@ -225,8 +261,8 @@ export default function CafeManagementSystem() {
             {/* CART SIDEBAR */}
             <div className="bg-[#1e293b] p-6 rounded-[2rem] shadow-2xl h-fit sticky top-28 border border-slate-700/50">
               <div className="flex items-center justify-between mb-8">
-                 <h2 className="font-black text-xl flex items-center gap-2 text-white italic"><ShoppingCart className="text-emerald-400" /> MY TRAY</h2>
-                 <span className="bg-emerald-500/10 text-emerald-400 text-[10px] font-bold px-3 py-1 rounded-full">{cart.reduce((a,b)=> a+b.qty, 0)} ITEMS</span>
+                  <h2 className="font-black text-xl flex items-center gap-2 text-white italic"><ShoppingCart className="text-emerald-400" /> MY TRAY</h2>
+                  <span className="bg-emerald-500/10 text-emerald-400 text-[10px] font-bold px-3 py-1 rounded-full">{cart.reduce((a,b)=> a+b.qty, 0)} ITEMS</span>
               </div>
               <div className="mb-6">
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Guest Name</label>
@@ -359,23 +395,21 @@ export default function CafeManagementSystem() {
           
           <div className="rounded-[2.5rem] overflow-hidden border border-slate-800 relative group h-[250px] lg:h-full min-h-[250px]">
              <div className="absolute inset-0 bg-emerald-500/10 z-10 pointer-events-none group-hover:bg-transparent transition-all"></div>
-             {/* Map Image */}
              <iframe
-  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3812.946324331719!2d74.37324091076043!3d17.124117383650983!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bc16c9544cf92d3%3A0xd7b419f30bceaf16!2sKarad%20-%20Tasgaon%20Rd%2C%20Maharashtra!5e0!3m2!1sen!2sin!4v1769252100828!5m2!1sen!2sin"
-  className="w-full h-full border-0 grayscale opacity-30 group-hover:grayscale-0 group-hover:opacity-60 transition-all duration-700"
-  loading="lazy"
-  referrerPolicy="no-referrer-when-downgrade"
-></iframe>
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3816.516584285741!2d74.4518731!3d17.0474639!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMTfCsDAyJzUwLjkiTiA3NMKwMjcnMDYuNyJF!5e0!3m2!1sen!2sin!4v1625000000000!5m2!1sen!2sin"
+                className="w-full h-full border-0 grayscale opacity-30 group-hover:grayscale-0 group-hover:opacity-60 transition-all duration-700"
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              ></iframe>
 
-<div className="absolute inset-0 flex flex-col items-center justify-center z-20 pointer-events-none">
-  <div className="p-4 bg-white rounded-full shadow-2xl animate-bounce">
-    <MapPin className="text-emerald-600" size={32} />
-  </div>
-  <p className="bg-[#0f172a] text-white text-[10px] font-black px-4 py-2 rounded-full mt-4 border border-slate-700 uppercase tracking-widest">
-    Open in Google Maps
-  </p>
-</div>
-
+            <div className="absolute inset-0 flex flex-col items-center justify-center z-20 pointer-events-none">
+              <div className="p-4 bg-white rounded-full shadow-2xl animate-bounce">
+                <MapPin className="text-emerald-600" size={32} />
+              </div>
+              <p className="bg-[#0f172a] text-white text-[10px] font-black px-4 py-2 rounded-full mt-4 border border-slate-700 uppercase tracking-widest">
+                Open in Google Maps
+              </p>
+            </div>
           </div>
         </div>
         <div className="max-w-7xl mx-auto mt-16 pt-8 border-t border-slate-900/50 flex flex-col md:flex-row justify-between items-center gap-4">
