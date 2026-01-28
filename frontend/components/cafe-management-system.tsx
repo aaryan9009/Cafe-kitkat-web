@@ -6,7 +6,11 @@ import {
   CheckCircle, X, Check, IndianRupee, ClipboardList, XCircle, LogOut, MapPin, Phone, Mail, ChevronDown
 } from "lucide-react"
 
-const API_URL = "https://cafe-kitkat-web.onrender.com/api/orders"
+<<<<<<< HEAD
+=======
+//const API_URL = "http://localhost:5000/api/orders"
+>>>>>>> 248ef9c (Fix: update Next.js to patched version)
+const API_URL = "https://cafe-kitkat-web.onrender.com"
 
 export default function CafeManagementSystem() {
   const [cart, setCart] = useState<any[]>([])
@@ -100,7 +104,7 @@ export default function CafeManagementSystem() {
       setLastOrderCount(data.length);
       setOrders(data);
     } catch (err) {
-      console.error("Orders sync failed");
+      console.error("Fetch error");
     }
   }, [lastOrderCount, view, isServerAuthenticated]);
 
