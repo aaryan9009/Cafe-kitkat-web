@@ -6,7 +6,11 @@ import {
   CheckCircle, X, Check, IndianRupee, ClipboardList, XCircle, LogOut, MapPin, Phone, Mail
 } from "lucide-react"
 
-const API_URL = "https://cafe-kitkat-web.onrender.com/api/orders"
+<<<<<<< HEAD
+=======
+//const API_URL = "http://localhost:5000/api/orders"
+>>>>>>> 248ef9c (Fix: update Next.js to patched version)
+const API_URL = "https://cafe-kitkat-web.onrender.com"
 
 export default function CafeManagementSystem() {
   const [cart, setCart] = useState<any[]>([])
