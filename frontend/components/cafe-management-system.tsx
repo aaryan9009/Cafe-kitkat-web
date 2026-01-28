@@ -105,7 +105,7 @@ export default function CafeManagementSystem() {
       setLastOrderCount(data.length);
       setOrders(data);
     } catch (err) {
-      console.error("Fetch error");
+      console.error("Fetch error details:", err); 
     }
   }, [lastOrderCount, view, isServerAuthenticated]);
 
