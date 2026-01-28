@@ -3,14 +3,10 @@
 import { useEffect, useState, useMemo, useCallback } from "react"
 import {
   Coffee, ShoppingCart, Plus, Minus, Trash2, Eye, EyeOff,
-  CheckCircle, X, Check, IndianRupee, ClipboardList, XCircle, LogOut, MapPin, Phone, Mail
+  CheckCircle, X, Check, IndianRupee, ClipboardList, XCircle, LogOut, MapPin, Phone, Mail, ChevronDown
 } from "lucide-react"
 
-<<<<<<< HEAD
-=======
-//const API_URL = "http://localhost:5000/api/orders"
->>>>>>> 248ef9c (Fix: update Next.js to patched version)
-const API_URL = "https://cafe-kitkat-web.onrender.com"
+const API_URL = "https://cafe-kitkat-web.onrender.com/api/orders"
 
 export default function CafeManagementSystem() {
   const [cart, setCart] = useState<any[]>([])
@@ -25,6 +21,9 @@ export default function CafeManagementSystem() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
   const [loginError, setLoginError] = useState("")
   const [lastOrderCount, setLastOrderCount] = useState<number | null>(null);
+  
+  // Mobile Tray Control
+  const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
 
   // --- MENU DATA ---
   const menuItems = [
@@ -80,57 +79,42 @@ export default function CafeManagementSystem() {
 
   // 🔊 AUDIO LOGIC
   const playSound = (path: string) => {
-  const audio = new Audio(path);
-  
-  // High volume and ensuring it's not muted
-  audio.volume = 1.0; 
-  
-  const playPromise = audio.play();
+    const audio = new Audio(path);
+    audio.volume = 1.0; 
+    const playPromise = audio.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(() => console.warn("Audio blocked. Click to enable."));
+    }
+  };
 
-  if (playPromise !== undefined) {
-    playPromise.catch((error) => {
-      console.warn("Autoplay blocked. Staff must click the page once to enable sound.");
-    });
-  }
-};
   const fetchOrders = useCallback(async () => {
     try {
       const res = await fetch(API_URL);
+      if (!res.ok) throw new Error("Fetch error");
       const data = await res.json();
-
-      // Notify Staff if new order arrives
       if (lastOrderCount !== null && data.length > lastOrderCount) {
         if (view === "server" && isServerAuthenticated) {
           playSound("/sounds/new-order.mp3");
         }
       }
-      
       setLastOrderCount(data.length);
       setOrders(data);
     } catch (err) {
-      console.error("Fetch error");
+      console.error("Orders sync failed");
     }
   }, [lastOrderCount, view, isServerAuthenticated]);
 
   useEffect(() => {
     fetchOrders();
-    if (localStorage.getItem("serverAuth") === "true") setIsServerAuthenticated(true);
-  }, []);
-
-  useEffect(() => {
-    let interval: any;
-    if (view === "server" && isServerAuthenticated) {
-      interval = setInterval(fetchOrders, 5000);
-    }
+    const interval = setInterval(fetchOrders, 10000);
     return () => clearInterval(interval);
-  }, [view, isServerAuthenticated, fetchOrders]);
+  }, [fetchOrders]);
 
   const handleServerLogin = () => {
     if (username === "kitkat" && password === "Palus@123") {
       setIsServerAuthenticated(true);
       localStorage.setItem("serverAuth", "true");
       setView("server");
-      setLoginError("");
     } else {
       setLoginError("Invalid credentials");
     }
@@ -153,7 +137,7 @@ export default function CafeManagementSystem() {
 
   const handleCheckout = (method: "cash" | "online") => {
     if (!customerName.trim()) return alert("Please enter your name.");
-    if (cart.length === 0) return alert("Cart is empty.");
+    if (cart.length === 0) return alert("Tray is empty.");
     if (method === "online") setShowPaymentScanner(true);
     else completeOrder("cash");
   };
@@ -173,8 +157,9 @@ export default function CafeManagementSystem() {
       });
 
       if (res.ok) {
-        playSound("/sounds/order-placed.mp3"); // Notify Client
+        playSound("/sounds/order-placed.mp3");
         setShowPaymentScanner(false);
+        setIsMobileCartOpen(false); 
         setShowBill(true);
         fetchOrders();
       }
@@ -194,7 +179,6 @@ export default function CafeManagementSystem() {
             </div>
             <h1 className="text-2xl font-black tracking-tighter text-white">KITKAT <span className="text-emerald-400">CAFE</span></h1>
           </div>
-          
           <div className="flex items-center gap-6">
             <a href="#contact" className="hidden md:block text-xs font-bold uppercase tracking-widest hover:text-emerald-400 transition">Contact Us</a>
             {isServerAuthenticated ? (
@@ -215,11 +199,11 @@ export default function CafeManagementSystem() {
             <div className="bg-[#1e293b] p-8 rounded-3xl shadow-2xl w-full max-w-sm border border-slate-700/50">
               <h2 className="text-2xl font-black text-center mb-8 text-white uppercase tracking-tight">Staff Portal</h2>
               <div className="space-y-4">
-                <input type="text" placeholder="Username" className="w-full p-4 bg-[#0f172a] border border-slate-700 rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none text-white transition-all" onChange={e => setUsername(e.target.value)} />
-                <input type="password" placeholder="Password" className="w-full p-4 bg-[#0f172a] border border-slate-700 rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none text-white transition-all" onChange={e => setPassword(e.target.value)} />
-                {loginError && <p className="text-red-400 text-xs font-bold animate-pulse">{loginError}</p>}
-                <button onClick={handleServerLogin} className="w-full bg-emerald-500 text-[#0f172a] py-4 rounded-2xl font-black uppercase hover:bg-emerald-400 transition-all shadow-lg shadow-emerald-500/20">Sign In</button>
-                <button onClick={() => setView("client")} className="w-full text-slate-500 text-xs font-bold uppercase hover:text-slate-300">Back to Store</button>
+                <input type="text" placeholder="Username" className="w-full p-4 bg-[#0f172a] border border-slate-700 rounded-2xl outline-none text-white" onChange={e => setUsername(e.target.value)} />
+                <input type="password" placeholder="Password" className="w-full p-4 bg-[#0f172a] border border-slate-700 rounded-2xl outline-none text-white" onChange={e => setPassword(e.target.value)} />
+                {loginError && <p className="text-red-400 text-xs font-bold">{loginError}</p>}
+                <button onClick={handleServerLogin} className="w-full bg-emerald-500 text-[#0f172a] py-4 rounded-2xl font-black uppercase shadow-lg shadow-emerald-500/20">Sign In</button>
+                <button onClick={() => setView("client")} className="w-full text-slate-500 text-xs font-bold uppercase">Back</button>
               </div>
             </div>
           </div>
@@ -237,9 +221,9 @@ export default function CafeManagementSystem() {
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     {menuItems.filter(i => i.category === cat).map(item => (
-                      <div key={item.id} className="bg-[#1e293b] p-4 rounded-3xl border border-slate-700/50 flex gap-4 items-center group hover:border-emerald-500/30 transition-all hover:translate-y-[-4px]">
+                      <div key={item.id} className="bg-[#1e293b] p-4 rounded-3xl border border-slate-700/50 flex gap-4 items-center group hover:border-emerald-500/30 transition-all">
                         <div className="relative overflow-hidden rounded-2xl w-24 h-24 shrink-0">
-                          <img src={item.image} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" alt="" />
+                          <img src={item.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt="" />
                         </div>
                         <div className="flex-1">
                           <h3 className="font-bold text-white text-lg leading-tight">{item.name}</h3>
@@ -262,20 +246,41 @@ export default function CafeManagementSystem() {
               ))}
             </div>
 
-            {/* CART SIDEBAR */}
-            <div className="bg-[#1e293b] p-6 rounded-[2rem] shadow-2xl h-fit sticky top-28 border border-slate-700/50">
-              <div className="flex items-center justify-between mb-8">
+            {/* SIDEBAR TRAY (DESKTOP & MOBILE OVERLAY) */}
+            <>
+              {/* Overlay Background for Mobile */}
+              {isMobileCartOpen && (
+                <div 
+                  className="fixed inset-0 bg-[#000]/60 backdrop-blur-sm z-[55] lg:hidden transition-opacity"
+                  onClick={() => setIsMobileCartOpen(false)}
+                ></div>
+              )}
+
+              <div className={`
+                bg-[#1e293b] p-6 rounded-[2rem] shadow-2xl h-fit border border-slate-700/50
+                ${isMobileCartOpen ? 
+                  'fixed bottom-0 left-0 right-0 z-[60] lg:relative rounded-t-[2.5rem] rounded-b-none max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom duration-300 shadow-[0_-20px_50px_rgba(0,0,0,0.5)]' : 
+                  'hidden lg:block lg:sticky lg:top-28'}
+              `}>
+                {/* Mobile Handle Bar */}
+                {isMobileCartOpen && (
+                  <div className="w-12 h-1.5 bg-slate-700 rounded-full mx-auto mb-6 lg:hidden"></div>
+                )}
+                
+                <div className="flex items-center justify-between mb-8">
                   <h2 className="font-black text-xl flex items-center gap-2 text-white italic"><ShoppingCart className="text-emerald-400" /> MY TRAY</h2>
-                  <span className="bg-emerald-500/10 text-emerald-400 text-[10px] font-bold px-3 py-1 rounded-full">{cart.reduce((a,b)=> a+b.qty, 0)} ITEMS</span>
-              </div>
-              <div className="mb-6">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Guest Name</label>
-                <input type="text" placeholder="Enter name..." className="w-full mt-2 p-4 bg-[#0f172a] border border-slate-700 rounded-2xl focus:ring-1 focus:ring-emerald-500 outline-none text-white placeholder:text-slate-600" value={customerName} onChange={e => setCustomerName(e.target.value)} />
-              </div>
-              <div className="space-y-4 max-h-[300px] overflow-y-auto mb-8 pr-2 custom-scrollbar">
-                {cart.length === 0 ? (
-                  <div className="text-center py-10 opacity-20"><Coffee size={48} className="mx-auto mb-2" /><p className="text-sm font-bold">TRAY IS EMPTY</p></div>
-                ) : cart.map(i => (
+                  <button onClick={() => isMobileCartOpen && setIsMobileCartOpen(false)} className="lg:hidden text-slate-500"><ChevronDown /></button>
+                </div>
+
+                <div className="mb-6">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Guest Name</label>
+                  <input type="text" placeholder="Enter name..." className="w-full mt-2 p-4 bg-[#0f172a] border border-slate-700 rounded-2xl focus:ring-1 focus:ring-emerald-500 outline-none text-white" value={customerName} onChange={e => setCustomerName(e.target.value)} />
+                </div>
+
+                <div className="space-y-4 max-h-[300px] lg:max-h-[400px] overflow-y-auto mb-8 pr-2 custom-scrollbar">
+                  {cart.length === 0 ? (
+                    <div className="text-center py-10 opacity-20"><Coffee size={48} className="mx-auto mb-2" /><p className="text-sm font-bold">TRAY IS EMPTY</p></div>
+                  ) : cart.map(i => (
                     <div key={i.id} className="flex justify-between items-center bg-[#0f172a]/50 p-3 rounded-2xl border border-slate-800">
                       <div>
                         <p className="font-bold text-sm text-slate-200">{i.name}</p>
@@ -287,20 +292,21 @@ export default function CafeManagementSystem() {
                         <button onClick={() => setCart(cart.map(item => item.id === i.id ? { ...item, qty: item.qty + 1 } : item))} className="p-1.5 text-slate-400 hover:text-emerald-400 transition-all"><Plus size={12} /></button>
                       </div>
                     </div>
-                  ))
-                }
-              </div>
-              <div className="border-t border-slate-700/50 pt-6">
-                <div className="flex justify-between items-center mb-6">
-                  <span className="font-bold text-slate-500 uppercase text-[10px] tracking-tighter">Total Payable</span>
-                  <span className="text-3xl font-black text-white">₹{calculateTotal()}</span>
+                  ))}
                 </div>
-                <div className="space-y-3">
-                  <button onClick={() => handleCheckout("online")} className="w-full bg-emerald-500 text-[#0f172a] py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-emerald-400 transition-all shadow-[0_10px_20px_rgba(16,185,129,0.2)]">Online UPI</button>
-                  <button onClick={() => handleCheckout("cash")} className="w-full bg-slate-800 text-white py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-slate-700 transition-all border border-slate-700">Pay Cash</button>
+
+                <div className="border-t border-slate-700/50 pt-6">
+                  <div className="flex justify-between items-center mb-6">
+                    <span className="font-bold text-slate-500 uppercase text-[10px] tracking-tighter">Total Payable</span>
+                    <span className="text-3xl font-black text-white">₹{calculateTotal()}</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button onClick={() => handleCheckout("online")} className="bg-emerald-500 text-[#0f172a] py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-lg shadow-emerald-500/20">Online UPI</button>
+                    <button onClick={() => handleCheckout("cash")} className="bg-slate-800 text-white py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest border border-slate-700">Pay Cash</button>
+                  </div>
                 </div>
               </div>
-            </div>
+            </>
           </div>
         )}
 
@@ -310,10 +316,9 @@ export default function CafeManagementSystem() {
             <div className="flex justify-between items-center mb-10">
               <h2 className="text-3xl font-black text-white italic tracking-tighter">ORDER TERMINAL</h2>
               <button onClick={handleLogout} className="flex items-center gap-2 bg-red-500/10 text-red-400 px-5 py-2 rounded-full font-black uppercase text-[10px] hover:bg-red-500 hover:text-white transition-all">
-                <LogOut size={14} /> Exit System
+                <LogOut size={14} /> Exit
               </button>
             </div>
-
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12">
               <div className="bg-[#1e293b] p-6 rounded-3xl border border-slate-700 shadow-xl">
                 <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-2">Total</p>
@@ -327,20 +332,19 @@ export default function CafeManagementSystem() {
                 <p className="text-red-500 text-[10px] font-black uppercase tracking-widest mb-2">Failed</p>
                 <p className="text-4xl font-black text-red-400 leading-none">{stats.cancelled}</p>
               </div>
-              <div className="bg-emerald-500 p-6 rounded-3xl shadow-[0_10px_30px_rgba(16,185,129,0.3)]">
+              <div className="bg-emerald-500 p-6 rounded-3xl shadow-lg">
                 <p className="text-[#0f172a]/60 text-[10px] font-black uppercase tracking-widest mb-2">Profit</p>
                 <p className="text-4xl font-black text-[#0f172a] leading-none">₹{stats.profit}</p>
               </div>
             </div>
-
+            {/* Orders list continues... (Same as your previous server logic) */}
             <div className="flex flex-col md:flex-row justify-between mb-8 gap-4 items-center">
               <h3 className="text-xl font-black text-white uppercase italic">Live Orders</h3>
               <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} className="p-3 bg-[#1e293b] border border-slate-700 rounded-xl font-bold text-white outline-none focus:ring-1 focus:ring-emerald-500" />
             </div>
-
             <div className="space-y-4">
               {orders.filter(o => toDateKey(o.createdAt) === selectedDate).length === 0 ?
-                <div className="text-center py-24 bg-[#1e293b]/50 rounded-[3rem] text-slate-600 font-black italic border border-dashed border-slate-800">NO ORDERS FOUND FOR THIS DATE</div> :
+                <div className="text-center py-24 bg-[#1e293b]/50 rounded-[3rem] text-slate-600 font-black italic border border-dashed border-slate-800">NO ORDERS</div> :
                 orders.filter(o => toDateKey(o.createdAt) === selectedDate).reverse().map(order => (
                   <div key={order._id} className="bg-[#1e293b] p-6 rounded-[2rem] border border-slate-700/50 flex flex-col md:flex-row justify-between items-center gap-6 hover:border-emerald-500/30 transition-all">
                     <div className="flex-1 w-full">
@@ -354,8 +358,8 @@ export default function CafeManagementSystem() {
                       <p className="text-3xl font-black text-white">₹{order.total}</p>
                       {order.status === 'pending' ? (
                         <div className="flex gap-3">
-                          <button onClick={() => updateOrderStatus(order._id, 'completed')} className="w-12 h-12 flex items-center justify-center bg-emerald-500/10 text-emerald-500 rounded-2xl hover:bg-emerald-500 hover:text-[#0f172a] transition-all border border-emerald-500/20"><Check size={20}/></button>
-                          <button onClick={() => updateOrderStatus(order._id, 'cancelled')} className="w-12 h-12 flex items-center justify-center bg-red-500/10 text-red-500 rounded-2xl hover:bg-red-500 hover:text-white transition-all border border-red-500/20"><X size={20}/></button>
+                          <button onClick={() => updateOrderStatus(order._id, 'completed')} className="w-12 h-12 flex items-center justify-center bg-emerald-500/10 text-emerald-500 rounded-2xl hover:bg-emerald-500 transition-all border border-emerald-500/20"><Check size={20}/></button>
+                          <button onClick={() => updateOrderStatus(order._id, 'cancelled')} className="w-12 h-12 flex items-center justify-center bg-red-500/10 text-red-500 rounded-2xl hover:bg-red-500 transition-all border border-red-500/20"><X size={20}/></button>
                         </div>
                       ) : (
                         <span className={`px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest ${order.status === 'completed' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
@@ -371,88 +375,75 @@ export default function CafeManagementSystem() {
         )}
       </main>
 
-      {/* FOOTER */}
+      {/* STICKY BOTTOM BAR (Always Small & Compact) */}
+      {view === "client" && cart.length > 0 && !isMobileCartOpen && !showBill && !showPaymentScanner && (
+        <div className="lg:hidden fixed bottom-6 left-4 right-4 z-[50]">
+          <button 
+            onClick={() => setIsMobileCartOpen(true)}
+            className="w-full bg-[#10b981] text-[#0f172a] p-4 rounded-2xl font-black flex justify-between items-center shadow-[0_10px_40px_rgba(0,0,0,0.4)] border-2 border-white/20"
+          >
+            <div className="flex items-center gap-3">
+              <div className="bg-[#0f172a] text-emerald-400 w-8 h-8 rounded-lg flex items-center justify-center text-sm">
+                {cart.reduce((a, b) => a + b.qty, 0)}
+              </div>
+              <span className="uppercase tracking-widest text-xs">View Tray</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-lg">₹{calculateTotal()}</span>
+              <ShoppingCart size={18} />
+            </div>
+          </button>
+        </div>
+      )}
+
+      {/* FOOTER & OVERLAYS (QR & BILL - SAME AS PREVIOUS) */}
       <footer id="contact" className="bg-[#0a0f1d] py-16 px-6 border-t border-slate-800">
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16">
           <div className="space-y-8">
-            <div className="space-y-2">
-              <h2 className="text-emerald-400 text-xs font-black tracking-[0.3em] uppercase">Connect</h2>
-              <h3 className="text-white text-4xl font-black italic">GET IN TOUCH</h3>
-            </div>
+            <h3 className="text-white text-4xl font-black italic">GET IN TOUCH</h3>
             <div className="space-y-6">
               <div className="flex items-start gap-5">
                 <div className="p-3 bg-slate-900 rounded-2xl border border-slate-800 text-emerald-400"><MapPin size={24} /></div>
                 <div>
                   <p className="font-black text-white text-sm mb-1 italic">LOCATION</p>
-                  <p className="text-slate-500 text-sm leading-relaxed">Karad Tasgaon Road, Near Wajarai Jewellery,<br />Palus, Maharashtra - 416310</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-5">
-                <div className="p-3 bg-slate-900 rounded-2xl border border-slate-800 text-emerald-400"><Phone size={24} /></div>
-                <div>
-                  <p className="font-black text-white text-sm mb-1 italic">HOTLINE</p>
-                  <p className="text-slate-500 text-sm">+91 9876543210</p>
+                  <p className="text-slate-500 text-sm leading-relaxed">Karad Tasgaon Road, Palus</p>
                 </div>
               </div>
             </div>
           </div>
-          
-          <div className="rounded-[2.5rem] overflow-hidden border border-slate-800 relative group h-[250px] lg:h-full min-h-[250px]">
-             <div className="absolute inset-0 bg-emerald-500/10 z-10 pointer-events-none group-hover:bg-transparent transition-all"></div>
-             <iframe
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3816.516584285741!2d74.4518731!3d17.0474639!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMTfCsDAyJzUwLjkiTiA3NMKwMjcnMDYuNyJF!5e0!3m2!1sen!2sin!4v1625000000000!5m2!1sen!2sin"
-                className="w-full h-full border-0 grayscale opacity-30 group-hover:grayscale-0 group-hover:opacity-60 transition-all duration-700"
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-              ></iframe>
-
-            <div className="absolute inset-0 flex flex-col items-center justify-center z-20 pointer-events-none">
-              <div className="p-4 bg-white rounded-full shadow-2xl animate-bounce">
-                <MapPin className="text-emerald-600" size={32} />
-              </div>
-              <p className="bg-[#0f172a] text-white text-[10px] font-black px-4 py-2 rounded-full mt-4 border border-slate-700 uppercase tracking-widest">
-                Open in Google Maps
-              </p>
-            </div>
-          </div>
-        </div>
-        <div className="max-w-7xl mx-auto mt-16 pt-8 border-t border-slate-900/50 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.2em]">© 2026 KitKat Cafe Terminal</p>
-          <div className="flex gap-6">
-             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-             <p className="text-[10px] font-bold text-emerald-500/50 uppercase tracking-[0.2em]">System Online</p>
+          <div className="rounded-[2.5rem] overflow-hidden border border-slate-800 relative h-[200px]">
+             <div className="absolute inset-0 bg-emerald-500/10 z-10 pointer-events-none"></div>
+             <div className="absolute inset-0 flex flex-col items-center justify-center z-20">
+               <MapPin className="text-emerald-600 mb-2" size={32} />
+               <p className="text-white text-[10px] font-black uppercase tracking-widest">Palus, Maharashtra</p>
+             </div>
           </div>
         </div>
       </footer>
 
-      {/* OVERLAYS (QR & BILL) */}
+      {/* PAYMENT SCANNER */}
       {showPaymentScanner && (
-        <div className="fixed inset-0 bg-[#0f172a]/90 backdrop-blur-xl flex items-center justify-center p-6 z-[100]">
-          <div className="bg-[#1e293b] p-8 rounded-[3rem] text-center max-w-sm w-full border border-slate-700 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
-            <h2 className="text-xl font-black mb-6 text-white uppercase italic tracking-widest">Scan to Pay</h2>
+        <div className="fixed inset-0 bg-[#0f172a]/95 backdrop-blur-xl flex items-center justify-center p-6 z-[100]">
+          <div className="bg-[#1e293b] p-8 rounded-[3rem] text-center max-w-sm w-full border border-slate-700">
+            <h2 className="text-xl font-black mb-6 text-white uppercase italic">Scan to Pay</h2>
             <div className="bg-white p-6 rounded-3xl mb-8 flex items-center justify-center">
               <img src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=kitkat@upi&pn=KitKatCafe&am=${calculateTotal()}`} className="w-48 h-48" alt="QR" />
             </div>
-            <div className="flex justify-between items-center mb-8 px-2">
-               <p className="text-slate-500 text-xs font-bold uppercase">Amount Due</p>
-               <p className="text-3xl font-black text-emerald-400">₹{calculateTotal()}</p>
-            </div>
-            <button onClick={() => completeOrder("online")} className="w-full bg-emerald-500 text-[#0f172a] py-5 rounded-2xl font-black uppercase tracking-tighter hover:bg-emerald-400 transition-all text-lg shadow-lg shadow-emerald-500/20">I Have Paid</button>
-            <button onClick={() => setShowPaymentScanner(false)} className="mt-6 text-slate-500 font-bold uppercase text-[10px] hover:text-white tracking-widest">Cancel Payment</button>
+            <p className="text-3xl font-black text-emerald-400 mb-8">₹{calculateTotal()}</p>
+            <button onClick={() => completeOrder("online")} className="w-full bg-emerald-500 text-[#0f172a] py-5 rounded-2xl font-black uppercase">Paid Successfully</button>
+            <button onClick={() => setShowPaymentScanner(false)} className="mt-4 text-slate-500 text-xs font-bold uppercase">Cancel</button>
           </div>
         </div>
       )}
 
+      {/* BILL CONFIRMATION */}
       {showBill && (
         <div className="fixed inset-0 bg-emerald-500 flex items-center justify-center p-6 z-[100]">
-          <div className="bg-[#0f172a] p-10 rounded-[3rem] shadow-2xl max-w-md w-full border border-emerald-400/20 text-center relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-2 bg-emerald-400"></div>
-            <div className="bg-emerald-500/10 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6">
-              <CheckCircle size={48} className="text-emerald-400" />
-            </div>
-            <h2 className="text-3xl font-black text-white uppercase italic tracking-tighter mb-2">Order Confirmed</h2>
-            <p className="text-slate-400 mb-10 text-sm">Please wait, <span className="text-emerald-400 font-bold">{customerName}</span>. Your delicious treats are on the way!</p>
-            <button onClick={() => { setShowBill(false); setCart([]); setCustomerName(""); }} className="w-full bg-emerald-500 text-[#0f172a] py-5 rounded-2xl font-black uppercase hover:bg-emerald-400 transition-all">New Order</button>
+          <div className="bg-[#0f172a] p-10 rounded-[3rem] shadow-2xl max-w-md w-full text-center border border-emerald-400/20">
+            <CheckCircle size={48} className="text-emerald-400 mx-auto mb-6" />
+            <h2 className="text-3xl font-black text-white uppercase italic mb-2">Confirmed!</h2>
+            <p className="text-slate-400 mb-10 text-sm">Deliciousness is on its way, {customerName}!</p>
+            <button onClick={() => { setShowBill(false); setCart([]); setCustomerName(""); }} className="w-full bg-emerald-500 text-[#0f172a] py-5 rounded-2xl font-black uppercase">Awesome</button>
           </div>
         </div>
       )}
