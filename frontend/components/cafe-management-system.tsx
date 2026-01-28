@@ -338,7 +338,7 @@ export default function CafeManagementSystem() {
                 <p className="text-4xl font-black text-[#0f172a] leading-none">₹{stats.profit}</p>
               </div>
             </div>
-            {/* Orders list continues... (Same as your previous server logic) */}
+            {/* Orders list continues */}
             <div className="flex flex-col md:flex-row justify-between mb-8 gap-4 items-center">
               <h3 className="text-xl font-black text-white uppercase italic">Live Orders</h3>
               <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} className="p-3 bg-[#1e293b] border border-slate-700 rounded-xl font-bold text-white outline-none focus:ring-1 focus:ring-emerald-500" />
@@ -376,7 +376,7 @@ export default function CafeManagementSystem() {
         )}
       </main>
 
-      {/* STICKY BOTTOM BAR (Always Small & Compact) */}
+      {/* STICKY BOTTOM BAR */}
       {view === "client" && cart.length > 0 && !isMobileCartOpen && !showBill && !showPaymentScanner && (
         <div className="lg:hidden fixed bottom-6 left-4 right-4 z-[50]">
           <button 
@@ -401,23 +401,52 @@ export default function CafeManagementSystem() {
       <footer id="contact" className="bg-[#0a0f1d] py-16 px-6 border-t border-slate-800">
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16">
           <div className="space-y-8">
-            <h3 className="text-white text-4xl font-black italic">GET IN TOUCH</h3>
+            <div className="space-y-2">
+              <h2 className="text-emerald-400 text-xs font-black tracking-[0.3em] uppercase">Connect</h2>
+              <h3 className="text-white text-4xl font-black italic">GET IN TOUCH</h3>
+            </div>
             <div className="space-y-6">
               <div className="flex items-start gap-5">
                 <div className="p-3 bg-slate-900 rounded-2xl border border-slate-800 text-emerald-400"><MapPin size={24} /></div>
                 <div>
                   <p className="font-black text-white text-sm mb-1 italic">LOCATION</p>
-                  <p className="text-slate-500 text-sm leading-relaxed">Karad Tasgaon Road, Palus</p>
+                  <p className="text-slate-500 text-sm leading-relaxed">Karad Tasgaon Road, Near Wajarai Jewellery,<br />Palus, Maharashtra - 416310</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-5">
+                <div className="p-3 bg-slate-900 rounded-2xl border border-slate-800 text-emerald-400"><Phone size={24} /></div>
+                <div>
+                  <p className="font-black text-white text-sm mb-1 italic">HOTLINE</p>
+                  <p className="text-slate-500 text-sm">+91 9876543210</p>
                 </div>
               </div>
             </div>
           </div>
-          <div className="rounded-[2.5rem] overflow-hidden border border-slate-800 relative h-[200px]">
-             <div className="absolute inset-0 bg-emerald-500/10 z-10 pointer-events-none"></div>
-             <div className="absolute inset-0 flex flex-col items-center justify-center z-20">
-               <MapPin className="text-emerald-600 mb-2" size={32} />
-               <p className="text-white text-[10px] font-black uppercase tracking-widest">Palus, Maharashtra</p>
-             </div>
+          
+          <div className="rounded-[2.5rem] overflow-hidden border border-slate-800 relative group h-[250px] lg:h-full min-h-[250px]">
+             <div className="absolute inset-0 bg-emerald-500/10 z-10 pointer-events-none group-hover:bg-transparent transition-all"></div>
+             <iframe
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3816.516584285741!2d74.4518731!3d17.0474639!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMTfCsDAyJzUwLjkiTiA3NMKwMjcnMDYuNyJF!5e0!3m2!1sen!2sin!4v1625000000000!5m2!1sen!2sin"
+                className="w-full h-full border-0 grayscale opacity-30 group-hover:grayscale-0 group-hover:opacity-60 transition-all duration-700"
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              ></iframe>
+
+            <div className="absolute inset-0 flex flex-col items-center justify-center z-20 pointer-events-none">
+              <div className="p-4 bg-white rounded-full shadow-2xl animate-bounce">
+                <MapPin className="text-emerald-600" size={32} />
+              </div>
+              <p className="bg-[#0f172a] text-white text-[10px] font-black px-4 py-2 rounded-full mt-4 border border-slate-700 uppercase tracking-widest">
+                Open in Google Maps
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="max-w-7xl mx-auto mt-16 pt-8 border-t border-slate-900/50 flex flex-col md:flex-row justify-between items-center gap-4">
+          <p className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.2em]">© 2026 KitKat Cafe Terminal</p>
+          <div className="flex gap-6">
+             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+             <p className="text-[10px] font-bold text-emerald-500/50 uppercase tracking-[0.2em]">System Online</p>
           </div>
         </div>
       </footer>
@@ -444,7 +473,7 @@ export default function CafeManagementSystem() {
             <CheckCircle size={48} className="text-emerald-400 mx-auto mb-6" />
             <h2 className="text-3xl font-black text-white uppercase italic mb-2">Confirmed!</h2>
             <p className="text-slate-400 mb-10 text-sm">Deliciousness is on its way, {customerName}!</p>
-            <button onClick={() => { setShowBill(false); setCart([]); setCustomerName(""); }} className="w-full bg-emerald-500 text-[#0f172a] py-5 rounded-2xl font-black uppercase">Awesome</button>
+            <button onClick={() => { setShowBill(false); setCart([]); setCustomerName(""); }} className="w-full bg-emerald-500 text-[#0f172a] py-5 rounded-2xl font-black uppercase">New Order</button>
           </div>
         </div>
       )}
